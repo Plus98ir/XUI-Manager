@@ -1,0 +1,4 @@
+tags:
+  screenshots:
+    # Visual review screenshots; generated locally with --update-goldens.
+    skip: "Run locally: flutter test --tags screenshots --update-goldens --run-skipped"
