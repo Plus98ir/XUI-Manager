@@ -5,6 +5,7 @@ import '../l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
 import '../utils/format.dart';
+import '../utils/json.dart';
 import '../widgets/common.dart';
 import '../widgets/soft.dart';
 import 'inbound_form_screen.dart';
@@ -44,6 +45,7 @@ class _InboundsTabState extends State<InboundsTab> {
 
   Future<void> _load() async {
     try {
+      await widget.api.prepare();
       final list = await widget.api.inbounds();
       if (mounted) {
         setState(() {
@@ -91,6 +93,10 @@ class _InboundsTabState extends State<InboundsTab> {
             action: s.t('reset_traffic'))) {
           await _run(id, () => widget.api.resetInboundTraffic(id));
         }
+      case 'attach_group':
+        await _attachGroup(ib);
+      case 'attach_clients':
+        await _attachClients(ib);
       case 'delete':
         if (await confirmDialog(context,
             title: s.t('delete_inbound_q'),
@@ -100,6 +106,108 @@ class _InboundsTabState extends State<InboundsTab> {
           await _run(id, () => widget.api.deleteInbound(id));
         }
     }
+  }
+
+  Future<void> _attach(InboundInfo ib, List<String> emails) async {
+    final s = S.of(context);
+    setState(() => _busy.add(ib.id!));
+    try {
+      final n = await widget.api.attachClients(ib.id!, emails);
+      if (mounted) showSnack(context, n == 0 ? s.t('already_all') : s.n('attached_n', n));
+      await _load();
+    } catch (e) {
+      if (mounted) showSnack(context, '$e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy.remove(ib.id));
+    }
+  }
+
+  Future<void> _attachGroup(InboundInfo ib) async {
+    final s = S.of(context);
+    List<String> groups;
+    try {
+      groups = await widget.api.groups();
+    } catch (e) {
+      if (mounted) showSnack(context, '$e', error: true);
+      return;
+    }
+    if (!mounted) return;
+    if (groups.isEmpty) {
+      showSnack(context, s.t('no_groups'));
+      return;
+    }
+    final group = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(s.t('choose_group'), style: Theme.of(ctx).textTheme.titleMedium),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final g in groups)
+                      ListTile(
+                        leading: const Icon(Icons.folder_outlined),
+                        title: Text(g),
+                        onTap: () => Navigator.pop(ctx, g),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (group == null || !mounted) return;
+    final ok = await confirmDialog(context,
+        title: s.t('attach_group'),
+        message: '${ib.title}\n${s.n('attach_group_q', group)}',
+        action: s.t('attach'));
+    if (!ok || !mounted) return;
+    try {
+      final emails = await widget.api.groupEmails(group);
+      if (mounted) await _attach(ib, emails);
+    } catch (e) {
+      if (mounted) showSnack(context, '$e', error: true);
+    }
+  }
+
+  Future<void> _attachClients(InboundInfo ib) async {
+    final s = S.of(context);
+    List<PanelUser> users;
+    try {
+      users = await widget.api.users();
+    } catch (e) {
+      if (mounted) showSnack(context, '$e', error: true);
+      return;
+    }
+    // Only users not already on this inbound.
+    final free = users
+        .where((u) => !asList(u.raw['inboundIds']).map(asInt).contains(ib.id))
+        .toList();
+    if (!mounted) return;
+    if (free.isEmpty) {
+      showSnack(context, s.t('already_all'));
+      return;
+    }
+    final picked = await showModalBottomSheet<List<String>>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _UserPicker(users: free),
+    );
+    if (picked != null && picked.isNotEmpty && mounted) await _attach(ib, picked);
   }
 
   @override
@@ -139,6 +247,7 @@ class _InboundsTabState extends State<InboundsTab> {
                     onTap: manage && ib.id != null ? () => _openForm(ib) : null,
                     onToggle: (v) => _run(ib.id!, () => widget.api.setInboundEnabled(ib.id!, v)),
                     onMenu: (a) => _menu(ib, a),
+                    canAttach: widget.api.canAttachClients && widget.api.acceptsClients(ib),
                   );
                 },
               ),
@@ -166,7 +275,10 @@ class _InboundCard extends StatelessWidget {
     required this.onTap,
     required this.onToggle,
     required this.onMenu,
+    this.canAttach = false,
   });
+
+  final bool canAttach;
 
   final InboundInfo inbound;
   final bool busy;
@@ -234,6 +346,10 @@ class _InboundCard extends StatelessWidget {
                   onSelected: onMenu,
                   itemBuilder: (_) => [
                     PopupMenuItem(value: 'edit', child: Text(s.t('edit'))),
+                    if (canAttach) ...[
+                      PopupMenuItem(value: 'attach_group', child: Text(s.t('attach_group'))),
+                      PopupMenuItem(value: 'attach_clients', child: Text(s.t('attach_clients'))),
+                    ],
                     PopupMenuItem(value: 'reset', child: Text(s.t('reset_traffic'))),
                     PopupMenuItem(
                         value: 'delete',
@@ -279,4 +395,74 @@ class _Tag extends StatelessWidget {
         ),
         child: Text(text, style: Theme.of(context).textTheme.labelSmall),
       );
+}
+
+
+/// Multi-select sheet of users with search.
+class _UserPicker extends StatefulWidget {
+  const _UserPicker({required this.users});
+
+  final List<PanelUser> users;
+
+  @override
+  State<_UserPicker> createState() => _UserPickerState();
+}
+
+class _UserPickerState extends State<_UserPicker> {
+  final _sel = <String>{};
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final list = widget.users
+        .where((u) => _q.isEmpty || u.name.toLowerCase().contains(_q))
+        .toList();
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.75,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: s.t('search_users'),
+                ),
+                onChanged: (v) => setState(() => _q = v.trim().toLowerCase()),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (_, i) {
+                  final u = list[i];
+                  return CheckboxListTile(
+                    value: _sel.contains(u.name),
+                    title: Text(u.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(s.status(u.status),
+                        style: TextStyle(color: statusColor(u.status))),
+                    onChanged: (v) =>
+                        setState(() => v == true ? _sel.add(u.name) : _sel.remove(u.name)),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FilledButton.icon(
+                onPressed: _sel.isEmpty ? null : () => Navigator.pop(context, _sel.toList()),
+                icon: const Icon(Icons.link_rounded),
+                label: Text('${s.t('attach')} (${ltr('${_sel.length}')})'),
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/panel_api.dart';
-import '../api/xui_api.dart';
 import '../l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
@@ -41,6 +40,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
   String _vmessSec = 'auto';
   String _trafficReset = 'never';
   List<InboundInfo>? _inbounds;
+  List<String> _groups = const [];
   Object? _loadError;
   bool _ready = false;
   bool _saving = false;
@@ -100,12 +100,21 @@ class _UserFormScreenState extends State<UserFormScreen> {
       List<InboundInfo> list = [];
       if (!_isEdit || _v3) {
         list = await widget.api.inbounds();
-        if (!_mz) list = list.where(XuiApi.supportsClients).toList();
+        if (!_mz) list = list.where(widget.api.acceptsClients).toList();
+      }
+      var groups = const <String>[];
+      if (_v3) {
+        try {
+          groups = await widget.api.groups();
+        } catch (_) {
+          // The group field still accepts free text.
+        }
       }
       if (!mounted) return;
       final u = widget.user;
       setState(() {
         _inbounds = list;
+        _groups = groups;
         if (u != null && _v3) {
           _inboundIds = asList(_raw['inboundIds']).map(asInt).whereType<int>().toSet();
         } else if (_inboundIds.isEmpty && list.isNotEmpty && !_mz) {
@@ -276,6 +285,26 @@ class _UserFormScreenState extends State<UserFormScreen> {
                   tooltip: S.of(context).t('generate'),
                   icon: const Icon(Icons.autorenew_rounded),
                   onPressed: regen,
+                ),
+        ),
+      );
+
+  /// Free-text group with a picker of the panel's existing groups.
+  Widget _groupField(S s) => TextFormField(
+        controller: _ctl('group'),
+        autocorrect: false,
+        decoration: InputDecoration(
+          labelText: s.t('group'),
+          prefixIcon: const Icon(Icons.folder_outlined),
+          suffixIcon: _groups.isEmpty
+              ? null
+              : PopupMenuButton<String>(
+                  tooltip: s.t('choose_group'),
+                  icon: const Icon(Icons.arrow_drop_down_rounded),
+                  onSelected: (g) => setState(() => _ctl('group').text = g),
+                  itemBuilder: (_) => [
+                    for (final g in _groups) PopupMenuItem(value: g, child: Text(g)),
+                  ],
                 ),
         ),
       );
@@ -470,8 +499,9 @@ class _UserFormScreenState extends State<UserFormScreen> {
             _text('note', s.t('note'), icon: Icons.notes_outlined, ltr: false, maxLines: 3),
             if (_v3) ...[
               gap,
-              _pair(_text('group', s.t('group'), ltr: false),
-                  _num('tgId', s.t('telegram_id'))),
+              _groupField(s),
+              gap,
+              _num('tgId', s.t('telegram_id')),
             ],
           ],
         ),

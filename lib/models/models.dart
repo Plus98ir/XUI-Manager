@@ -33,6 +33,11 @@ class ServerStats {
     this.expiredUsers,
     this.limitedUsers,
     this.onHoldUsers,
+    this.logicalCores,
+    this.cpuMhz,
+    this.appMem,
+    this.appThreads,
+    this.appUptime,
   });
 
   final double? cpu; // percent
@@ -48,6 +53,11 @@ class ServerStats {
   final String? panelVersion;
   final int? totalUsers, activeUsers, onlineUsers, disabledUsers;
   final int? expiredUsers, limitedUsers, onHoldUsers;
+  final int? logicalCores;
+  final double? cpuMhz;
+
+  /// The panel process itself (3X-UI appStats): RAM bytes, threads, uptime s.
+  final int? appMem, appThreads, appUptime;
 
   bool get coreRunning => coreState == 'running';
 }

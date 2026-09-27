@@ -47,6 +47,11 @@ class XuiApi extends PanelApi {
 
   static const _clientProtocols = {'vmess', 'vless', 'trojan', 'shadowsocks'};
 
+  // 3.x attaches clients to every protocol except these (proxies, tunnels, TUN).
+  static const _noClientProtocols = {
+    'socks', 'http', 'mixed', 'tunnel', 'dokodemo-door', 'dokodemo', 'tun'
+  };
+
   Uri _u(String path) => Uri.parse('${config.baseUrl}$path');
 
   bool get _tokenMode => config.token.isNotEmpty;
@@ -234,6 +239,7 @@ class XuiApi extends PanelApi {
     final netTraffic = asMap(j['netTraffic']);
     final xray = asMap(j['xray']);
     final ip = asMap(j['publicIP']);
+    final app = asMap(j['appStats']);
     String? cleanIp(dynamic v) {
       final s = asStr(v) ?? '';
       return s.isEmpty || s == 'N/A' ? null : s;
@@ -262,6 +268,11 @@ class XuiApi extends PanelApi {
       udpCount: asInt(j['udpCount']),
       ipv4: cleanIp(ip['ipv4']),
       ipv6: cleanIp(ip['ipv6']),
+      logicalCores: asInt(j['logicalPro']),
+      cpuMhz: asDouble(j['cpuSpeedMhz']),
+      appMem: asInt(app['mem']),
+      appThreads: asInt(app['threads']),
+      appUptime: asInt(app['uptime']),
     );
   }
 
@@ -465,7 +476,63 @@ class XuiApi extends PanelApi {
   }
 
   /// Inbounds that accept clients (used by the create-user form).
-  static bool supportsClients(InboundInfo i) => _clientProtocols.contains(i.protocol);
+  static bool supportsClients(InboundInfo i, {bool v3 = false}) => v3
+      ? !_noClientProtocols.contains(i.protocol)
+      : _clientProtocols.contains(i.protocol);
+
+  @override
+  bool acceptsClients(InboundInfo inbound) => supportsClients(inbound, v3: _v3 == true);
+
+  @override
+  bool get canAttachClients => _v3 == true;
+
+  @override
+  Future<List<String>> groups() async {
+    if (await _isV3()) {
+      try {
+        final list = asList(await _call('GET', '/panel/api/clients/groups'));
+        final names = [
+          for (final g in list)
+            if ((asStr(asMap(g)['name']) ?? '').isNotEmpty) asStr(asMap(g)['name'])!,
+        ];
+        if (names.isNotEmpty) return names;
+      } on NotFoundException {
+        // Older 3.x builds: fall back to the labels on users.
+      }
+    }
+    final names = <String>{
+      for (final u in await users())
+        if ((asStr(u.raw['group']) ?? '').isNotEmpty) asStr(u.raw['group'])!,
+    }.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return names;
+  }
+
+  @override
+  Future<List<String>> groupEmails(String group) async {
+    try {
+      return asList(await _call(
+              'GET', '/panel/api/clients/groups/${Uri.encodeComponent(group)}/emails'))
+          .map((e) => '$e')
+          .toList();
+    } on NotFoundException {
+      return [
+        for (final u in await users())
+          if (asStr(u.raw['group']) == group) u.name,
+      ];
+    }
+  }
+
+  @override
+  Future<int> attachClients(int inboundId, List<String> emails) async {
+    if (!await _isV3()) throw ApiException('Needs 3X-UI 3.x.');
+    final res = asMap(await _call('POST', '/panel/api/clients/bulkAttach', json: {
+      'emails': emails,
+      'inboundIds': [inboundId],
+    }));
+    final attached = res['attached'];
+    return attached is List ? attached.length : emails.length;
+  }
 
   int _expiryValue(UserDraft d) {
     final days = d.expiryDaysAfterFirstUse ?? 0;

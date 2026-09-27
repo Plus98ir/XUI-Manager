@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xui_manager/api/outbound_links.dart';
+import 'package:xui_manager/api/xui_api.dart';
+import 'package:xui_manager/models/models.dart';
 import 'package:xui_manager/utils/xray_template.dart';
 
 void main() {
@@ -145,5 +147,16 @@ void main() {
           }),
           'e:2408');
     });
+  });
+
+  test('3.x accepts users on every protocol but proxies, tunnels and TUN', () {
+    InboundInfo ib(String p) => InboundInfo(id: 1, tag: 't', remark: '', protocol: p);
+    for (final p in ['vless', 'vmess', 'trojan', 'shadowsocks', 'hysteria', 'hysteria2', 'amneziawg']) {
+      expect(XuiApi.supportsClients(ib(p), v3: true), isTrue, reason: p);
+    }
+    for (final p in ['socks', 'http', 'mixed', 'tunnel', 'dokodemo-door', 'tun']) {
+      expect(XuiApi.supportsClients(ib(p), v3: true), isFalse, reason: p);
+    }
+    expect(XuiApi.supportsClients(ib('hysteria')), isFalse);
   });
 }

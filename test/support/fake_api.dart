@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:xui_manager/api/panel_api.dart';
 import 'package:xui_manager/models/models.dart';
@@ -19,31 +20,52 @@ class FakeApi extends PanelApi {
   bool get canManageInbounds => true;
   @override
   bool get hasPanelSettings => true;
+  @override
+  bool get canAttachClients => true;
+  @override
+  Future<List<String>> groups() async => ['family', 'vip'];
+  @override
+  Future<List<String>> groupEmails(String group) async => ['alice', 'bob'];
+  @override
+  Future<int> attachClients(int inboundId, List<String> emails) async => emails.length;
 
   @override
   Future<void> login() async {}
 
+  int _statusTick = 0;
+
   @override
-  Future<ServerStats> status() async => const ServerStats(
-        cpu: 23.4,
-        cpuCores: 4,
-        memUsed: 1900000000,
-        memTotal: 4000000000,
-        diskUsed: 21000000000,
-        diskTotal: 52000000000,
-        uptime: 263513,
-        netUpSpeed: 1250000,
-        netDownSpeed: 8400000,
-        netSent: 912000000000,
-        netRecv: 4400000000000,
-        coreState: 'running',
-        coreVersion: '26.9.9',
-        panelVersion: '3.8.5',
-        tcpCount: 270,
-        udpCount: 31,
-        loads: [0.42, 0.51, 0.47],
-        ipv4: '203.0.113.10',
-      );
+  Future<ServerStats> status() async {
+    final t = _statusTick++;
+    final wave = math.sin(t / 2.5);
+    return ServerStats(
+      cpu: 23.4 + wave * 9 + (t % 7 == 0 ? 25 : 0),
+      cpuCores: 2,
+      logicalCores: 2,
+      cpuMhz: 2200,
+      memUsed: 1900000000 + (wave * 60000000).round(),
+      memTotal: 4000000000,
+      swapUsed: 0,
+      swapTotal: 0,
+      diskUsed: 21000000000,
+      diskTotal: 52000000000,
+      uptime: 263513 + t * 2,
+      netUpSpeed: 1250000 + (wave * 600000).round() + (t % 9 == 0 ? 3000000 : 0),
+      netDownSpeed: 8400000 + (math.cos(t / 3) * 3000000).round(),
+      netSent: 912000000000,
+      netRecv: 4400000000000,
+      coreState: 'running',
+      coreVersion: '26.9.9',
+      panelVersion: '3.8.5',
+      tcpCount: 270 + (wave * 20).round(),
+      udpCount: 31,
+      loads: const [0.42, 0.51, 0.47],
+      ipv4: '203.0.113.10',
+      appMem: 169070000,
+      appThreads: 57,
+      appUptime: 57600,
+    );
+  }
 
   static final _inbounds = [
     const InboundInfo(id: 3, tag: 'inbound-2542', remark: 'DE WS', protocol: 'vless', port: 2542, network: 'ws', security: 'tls', up: 17410966013, down: 247009967247, total: 0, clientCount: 12),

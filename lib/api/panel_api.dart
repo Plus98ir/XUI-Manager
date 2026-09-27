@@ -34,6 +34,21 @@ abstract class PanelApi {
   /// Panel settings / Xray config editing is available.
   bool get hasPanelSettings => false;
 
+  /// Whether users can be added to this inbound. Valid after [prepare].
+  bool acceptsClients(InboundInfo inbound) => true;
+
+  /// Existing users can be attached to more inbounds (3X-UI 3.x).
+  bool get canAttachClients => false;
+
+  /// Known user groups (empty when the panel has none).
+  Future<List<String>> groups() async => const [];
+
+  /// Emails of the users in [group].
+  Future<List<String>> groupEmails(String group) => _unsupported();
+
+  /// Attaches existing users to an inbound; returns how many were added.
+  Future<int> attachClients(int inboundId, List<String> emails) => _unsupported();
+
   /// Detects panel capabilities before showing forms.
   Future<void> prepare() async {}
 

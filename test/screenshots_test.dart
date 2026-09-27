@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xui_manager/api/panel_api.dart';
 import 'package:xui_manager/l10n.dart';
 import 'package:xui_manager/models/models.dart';
+import 'package:xui_manager/screens/dashboard_tab.dart';
 import 'package:xui_manager/screens/inbound_form_screen.dart';
 import 'package:xui_manager/screens/inbounds_tab.dart';
 import 'package:xui_manager/screens/outbounds_screen.dart';
@@ -192,6 +193,20 @@ void main() {
             targets: const ['direct', 'blocked', 'warp'],
             inboundTags: const ['inbound-2542', 'inbound-3103'],
           )));
+      testWidgets('status', (t) => shot(t, '19_status', Scaffold(body: SafeArea(child: DashboardTab(api: FakeApi(api.config), active: true))),
+          before: () async {
+            for (var i = 0; i < 40; i++) {
+              await t.pump(const Duration(seconds: 2));
+            }
+          }));
+      testWidgets('status bottom', (t) => shot(t, '20_status_bottom', Scaffold(body: SafeArea(child: DashboardTab(api: FakeApi(api.config), active: true))),
+          before: () async {
+            for (var i = 0; i < 40; i++) {
+              await t.pump(const Duration(seconds: 2));
+            }
+            await t.drag(find.byType(ListView).first, const Offset(0, -700));
+            await t.pump(const Duration(milliseconds: 500));
+          }));
       testWidgets('app settings', (t) => shot(t, '18_app_settings', const SettingsScreen()));
     });
   }

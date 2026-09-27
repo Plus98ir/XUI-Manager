@@ -30,8 +30,8 @@ A native Android app that talks to your panel's API. No WebView, no server-side 
 
 ### Features
 - **Panels:** 3X-UI (including 3.x API tokens), Alireza X-UI and Marzban. Up to 5 panels, with a one-tap switcher.
-- **Server status:** live CPU, RAM, disk, network speed and uptime. Restart Xray or the panel.
-- **Users:** search and filter (online, active, disabled, expired, depleted), add, edit, delete, enable/disable and reset traffic. Live per-user speed. QR codes, subscription links and config links. One user can be attached to several inbounds on 3X-UI 3.x.
+- **Server status:** live charts for CPU, RAM, swap, disk, network speed and open connections, plus uptime and panel stats. Restart Xray or the panel.
+- **Users:** search and filter (online, active, disabled, expired, depleted), add, edit, delete, enable/disable and reset traffic. Live per-user speed. QR codes, subscription links and config links. On 3X-UI 3.x one user can sit on several inbounds (including Hysteria and AmneziaWG), groups are picked from a list, and a whole group or chosen users can be attached to an inbound.
 - **Inbounds:** add and edit VLESS / VMess / Trojan / Shadowsocks with TCP, WS, gRPC, xHTTP, TLS and Reality (key generation included).
 - **Outbounds:** add from a share link (`vless://`, `vmess://`, `trojan://`, `ss://`), or pick Direct, Block, WARP, SOCKS or HTTP. Edit, reorder and set the default.
 - **Routing:** domain strategy, drag-to-reorder rules, and a rule form for domains, IPs, ports, network, protocol and inbound tags.
@@ -42,8 +42,8 @@ A native Android app that talks to your panel's API. No WebView, no server-side 
 | Panels | Outbounds | Routing |
 |---|---|---|
 | <img src="docs/screenshots/panels-fa.webp" width="240"> | <img src="docs/screenshots/outbounds-en.webp" width="240"> | <img src="docs/screenshots/routing-fa.webp" width="240"> |
-| **User** | **Panel settings** | **Styles** |
-| <img src="docs/screenshots/user-detail-fa.webp" width="240"> | <img src="docs/screenshots/panel-settings-en.webp" width="240"> | <img src="docs/screenshots/styles-fa.webp" width="240"> |
+| **Server status** | **Panel settings** | **Styles** |
+| <img src="docs/screenshots/status-fa.webp" width="240"> | <img src="docs/screenshots/panel-settings-en.webp" width="240"> | <img src="docs/screenshots/styles-fa.webp" width="240"> |
 
 ### Install
 1. Open [Releases](https://github.com/Plus98ir/XUI-Manager/releases/latest) and download an APK:
@@ -81,8 +81,8 @@ flutter build apk --release
 
 ### امکانات
 - **پنل‌ها:** 3X-UI (همراه با توکن API نسخه 3.x)، علیرضا X-UI و مرزبان. تا ۵ پنل، با جابه‌جایی سریع بین آن‌ها.
-- **وضعیت سرور:** CPU، رم، دیسک، سرعت شبکه و مدت روشن بودن، به‌صورت زنده. ری‌استارت Xray یا پنل.
-- **کاربران:** جستجو و فیلتر (آنلاین، فعال، غیرفعال، منقضی، اتمام حجم)، افزودن، ویرایش، حذف، فعال/غیرفعال کردن و ریست ترافیک. سرعت زنده هر کاربر. QR کد، لینک اشتراک و لینک کانفیگ. در 3X-UI 3.x هر کاربر می‌تواند به چند اینباند وصل شود.
+- **وضعیت سرور:** نمودار زنده CPU، رم، Swap، دیسک، سرعت شبکه و اتصال‌های باز، به‌همراه مدت روشن بودن و آمار پنل. ری‌استارت Xray یا پنل.
+- **کاربران:** جستجو و فیلتر (آنلاین، فعال، غیرفعال، منقضی، اتمام حجم)، افزودن، ویرایش، حذف، فعال/غیرفعال کردن و ریست ترافیک. سرعت زنده هر کاربر. QR کد، لینک اشتراک و لینک کانفیگ. در 3X-UI 3.x هر کاربر می‌تواند به چند اینباند (از جمله Hysteria و AmneziaWG) وصل شود، گروه از لیست انتخاب می‌شود، و می‌توان یک گروه کامل یا کاربران دلخواه را به یک اینباند اضافه کرد.
 - **اینباندها:** افزودن و ویرایش VLESS / VMess / Trojan / Shadowsocks با TCP، WS، gRPC، xHTTP، TLS و Reality (همراه با ساخت کلید).
 - **خروجی‌ها (Outbound):** افزودن از روی لینک کانفیگ (`vless://`، `vmess://`، `trojan://`، `ss://`) یا انتخاب مستقیم، مسدود، WARP، SOCKS و HTTP. ویرایش، جابه‌جایی و تعیین خروجی پیش‌فرض.
 - **مسیریابی (Routing):** استراتژی دامنه، جابه‌جایی قانون‌ها با کشیدن، و فرم قانون برای دامنه، آی‌پی، پورت، شبکه، پروتکل و تگ اینباند.
