@@ -1,0 +1,48 @@
+name: Bug report / گزارش باگ
+description: Something does not work as expected. / چیزی درست کار نمی‌کند.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not post your panel address, username, password or token. / لطفاً آدرس پنل، نام کاربری، رمز یا توکن خود را اینجا ننویسید.
+  - type: input
+    id: app_version
+    attributes:
+      label: App version / نسخه برنامه
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: panel
+    attributes:
+      label: Panel / پنل
+      options:
+        - 3X-UI 3.x
+        - 3X-UI 2.x or older / قدیمی‌تر
+        - Alireza X-UI
+        - Marzban
+    validations:
+      required: true
+  - type: input
+    id: panel_version
+    attributes:
+      label: Panel version / نسخه پنل
+      placeholder: 3.8.5
+  - type: input
+    id: phone
+    attributes:
+      label: Phone and Android version / مدل گوشی و نسخه اندروید
+      placeholder: Samsung A54, Android 14
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / چه اتفاقی افتاد؟
+      description: Steps to reproduce and the error text, if any. / مراحل رخ دادن و متن خطا (اگر هست).
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot / تصویر
+      description: Hide IPs and domains first. / اول آی‌پی و دامنه را بپوشانید.
