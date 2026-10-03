@@ -177,6 +177,33 @@ void main() {
             await t.drag(find.byType(ListView).first, const Offset(0, -700));
             await t.pump(const Duration(milliseconds: 500));
           }));
+      testWidgets('inbound hysteria', (t) => shot(t, '21_inbound_hysteria', InboundFormScreen(api: api, inboundId: 31),
+          before: () async {
+            await t.drag(find.byType(ListView).first, const Offset(0, -700));
+            await t.pump(const Duration(milliseconds: 500));
+          }));
+      testWidgets('inbound wireguard', (t) => shot(t, '22_inbound_wireguard', InboundFormScreen(api: api, inboundId: 32),
+          before: () async {
+            await t.drag(find.byType(ListView).first, const Offset(0, -500));
+            await t.pump(const Duration(milliseconds: 500));
+          }));
+      testWidgets('inbound mixed', (t) => shot(t, '23_inbound_mixed', InboundFormScreen(api: api, inboundId: 33),
+          before: () async {
+            await t.drag(find.byType(ListView).first, const Offset(0, -500));
+            await t.pump(const Duration(milliseconds: 500));
+          }));
+      testWidgets('inbound tuic', (t) => shot(t, '24_inbound_tuic', InboundFormScreen(api: api, inboundId: 34),
+          before: () async {
+            await t.drag(find.byType(ListView).first, const Offset(0, -500));
+            await t.pump(const Duration(milliseconds: 500));
+          }));
+      testWidgets('inbound protocols', (t) => shot(t, '25_inbound_protocols', InboundFormScreen(api: api),
+          before: () async {
+            await t.tap(find.text('VLESS').first);
+            for (var i = 0; i < 5; i++) {
+              await t.pump(const Duration(milliseconds: 300));
+            }
+          }));
       testWidgets('settings', (t) => shot(t, '14_settings', PanelSettingsScreen(api: api)));
       testWidgets('outbounds', (t) => shot(t, '15_outbounds', OutboundsScreen(api: api)));
       testWidgets('routing', (t) => shot(t, '16_routing', RoutingScreen(api: api)));

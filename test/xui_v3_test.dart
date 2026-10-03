@@ -23,6 +23,13 @@ Future<HttpServer> fakeV3(List<(String, String, Object?)> calls) async {
     } else if (path == '/panel/api/clients/list') {
       json([
         {
+          // Real 3.x rows are DB records: numeric id, uuid, CSV allowedIPs.
+          'id': 7,
+          'uuid': 'uuid-a',
+          'allowedIPs': '10.0.0.2/32, fd00::2/128',
+          'reverse': '',
+          'keepAlive': 0,
+          'createdAt': 1,
           'email': 'alice',
           'enable': true,
           'totalGB': 1000,
@@ -187,6 +194,12 @@ void main() {
     expect((b1 as Map)['tgId'], 42); // kept from the original row
     expect(b1.containsKey('traffic'), isFalse);
     expect(b1['totalGB'], 9);
+    // Shaped like model.Client, or the server fails to unmarshal it.
+    expect(b1['id'], 'uuid-a');
+    expect(b1['allowedIPs'], ['10.0.0.2/32', 'fd00::2/128']);
+    expect(b1.containsKey('reverse'), isFalse);
+    expect(b1.containsKey('uuid'), isFalse);
+    expect(b1.containsKey('createdAt'), isFalse);
 
     await api.setEnabled(u, false);
     expect(calls.last.$2, '/panel/api/clients/bulkDisable');

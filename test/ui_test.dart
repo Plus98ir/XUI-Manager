@@ -12,7 +12,7 @@ Future<AppState> _stateWithPanels(String lang) async {
   FlutterSecureStorage.setMockInitialValues({});
   final state = AppState();
   await state.load();
-  for (var i = 0; i < AppState.maxPanels; i++) {
+  for (var i = 0; i < 5; i++) {
     await state.upsert(PanelConfig(
       id: 'p$i',
       name: 'Panel $i',
@@ -44,7 +44,7 @@ void main() {
       await _settle(tester);
 
       expect(find.text('Panel 0'), findsOneWidget);
-      expect(find.text(lang == 'en' ? 'Maximum 5 panels' : 'حداکثر 5 پنل'), findsOneWidget);
+      expect(find.text(lang == 'en' ? 'Add panel' : 'افزودن پنل'), findsOneWidget);
 
       await tester.tap(find.text('Panel 0'));
       await _settle(tester);

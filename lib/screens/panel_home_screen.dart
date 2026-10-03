@@ -24,6 +24,7 @@ import 'routing_screen.dart';
 import 'settings_screen.dart';
 import 'user_form_screen.dart';
 import 'users_tab.dart';
+import 'web_panel_screen.dart';
 
 class PanelHomeScreen extends StatefulWidget {
   const PanelHomeScreen({super.key, required this.panelId});
@@ -157,13 +158,8 @@ class _PanelHomeScreenState extends State<PanelHomeScreen> {
   }
 
   void _switchTo(String id) {
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => GlassBackdrop(child: PanelHomeScreen(panelId: id)),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-      ),
-    );
+    final p = context.read<AppState>().panelById(id);
+    if (p != null) Navigator.pushReplacement(context, panelRoute(p, fade: true));
   }
 
   @override
@@ -302,6 +298,8 @@ class _PanelHomeScreenState extends State<PanelHomeScreen> {
                 error: _error,
                 onSwitch: _openSwitcher,
                 onSettings: () => _push(const SettingsScreen()),
+                onWeb: () => Navigator.pushReplacement(
+                    context, panelRoute(cfg, web: true, fade: true)),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -336,6 +334,7 @@ class _Header extends StatelessWidget {
     required this.error,
     required this.onSwitch,
     required this.onSettings,
+    required this.onWeb,
   });
 
   final PanelConfig panel;
@@ -343,6 +342,7 @@ class _Header extends StatelessWidget {
   final Object? error;
   final VoidCallback onSwitch;
   final VoidCallback onSettings;
+  final VoidCallback onWeb;
 
   @override
   Widget build(BuildContext context) {
@@ -369,6 +369,12 @@ class _Header extends StatelessWidget {
                 tooltip: s.t('settings'),
                 icon: Icons.tune_rounded,
                 onPressed: onSettings,
+              ),
+              const SizedBox(width: 10),
+              GlassIconButton(
+                tooltip: s.t('web_panel'),
+                icon: Icons.language_rounded,
+                onPressed: onWeb,
               ),
               const Spacer(),
               Image.asset('assets/images/logo.png', height: 30),

@@ -16,6 +16,7 @@ class XuiApi extends PanelApi {
   final PanelHttp _http;
   bool _loggedIn = false;
   Future<void>? _loginOp;
+  String? _csrf; // session CSRF token (3X-UI 3.x rejects unsafe methods without it)
 
   String? _prefix; // e.g. /panel/api/inbounds
   String? _listPath; // e.g. /list
@@ -79,8 +80,10 @@ class XuiApi extends PanelApi {
     }
     _loggedIn = false;
     _http.cookies.clear();
+    _csrf = await _fetchCsrf();
     final r = await _http.send('POST', _u('/login'),
-        form: {'username': config.username, 'password': config.password});
+        form: {'username': config.username, 'password': config.password},
+        headers: _csrfHeaders('POST'));
     final j = r.json;
     if (j is Map && j['success'] == true) {
       _loggedIn = true;
@@ -96,14 +99,31 @@ class XuiApi extends PanelApi {
     throw ApiException('Login failed (HTTP ${r.status}).', r.status);
   }
 
+  /// The session's CSRF token from `GET /csrf-token`; null on panels that
+  /// predate it. The token survives login, so one fetch per session is enough.
+  Future<String?> _fetchCsrf() async {
+    try {
+      final j = (await _http.send('GET', _u('/csrf-token'))).json;
+      if (j is Map && j['success'] == true && j['obj'] is String) return j['obj'] as String;
+    } on ApiException {
+      // Older panel or a transient error: try the login without a token.
+    }
+    return null;
+  }
+
+  Map<String, String>? _csrfHeaders(String method) =>
+      _csrf == null || method == 'GET' || method == 'HEAD' ? null : {'X-CSRF-Token': _csrf!};
+
   Future<void> _ensureLogin() {
     if (_loggedIn) return Future.value();
     return _loginOp ??= login().whenComplete(() => _loginOp = null);
   }
 
-  // 3x-ui answers 404 to unauthenticated API calls; older builds redirect.
+  // 3x-ui answers 404 to unauthenticated API calls; older builds redirect;
+  // 403 is a stale CSRF token.
   bool _authLost(HttpResult r) =>
       r.status == 401 ||
+      r.status == 403 ||
       r.status == 404 ||
       (r.status >= 300 && r.status < 400) ||
       (r.ok && r.json == null);
@@ -118,11 +138,13 @@ class XuiApi extends PanelApi {
       }
     } else {
       await _ensureLogin();
-      r = await _http.send(method, _u(path), form: form, json: json);
+      r = await _http.send(method, _u(path),
+          form: form, json: json, headers: _csrfHeaders(method));
       if (_authLost(r)) {
         _loggedIn = false;
         await _ensureLogin();
-        r = await _http.send(method, _u(path), form: form, json: json);
+        r = await _http.send(method, _u(path),
+            form: form, json: json, headers: _csrfHeaders(method));
       }
     }
     if (r.status == 404 || (r.status >= 300 && r.status < 400)) {
@@ -627,6 +649,41 @@ class XuiApi extends PanelApi {
   }
 
   /// Form extras for 3.x; a uuid is sent as both `id` and `uuid`.
+  /// A `/clients/list` row (DB record) reshaped into the `Client` object that
+  /// `/clients/update` binds, like the server's ClientRecord.ToClient: `id` is
+  /// the UUID (the row's `id` is the numeric DB key), `allowedIPs` is a list
+  /// (the row has a comma-separated string), `reverse` an object.
+  static Map<String, dynamic> _v3ClientFromRow(Map<String, dynamic> row) {
+    final out = Map<String, dynamic>.from(row)
+      ..remove('traffic')
+      ..remove('inboundIds')
+      ..remove('uuid')
+      ..remove('createdAt')
+      ..remove('updatedAt')
+      ..remove('id');
+    final uuid = asStr(row['uuid']) ?? '';
+    if (uuid.isNotEmpty) out['id'] = uuid;
+    final ips = row['allowedIPs'];
+    if (ips is String) {
+      final list = ips.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      list.isEmpty ? out.remove('allowedIPs') : out['allowedIPs'] = list;
+    }
+    final rev = row['reverse'];
+    if (rev is String) {
+      Object? obj;
+      try {
+        obj = rev.isEmpty ? null : jsonDecode(rev);
+      } on FormatException {
+        obj = null;
+      }
+      obj is Map ? out['reverse'] = obj : out.remove('reverse');
+    } else if (rev != null && rev is! Map) {
+      out.remove('reverse');
+    }
+    if ((asInt(row['keepAlive']) ?? 0) == 0) out.remove('keepAlive');
+    return out;
+  }
+
   static Map<String, dynamic> _v3Extra(Map<String, dynamic> extra) {
     final out = Map<String, dynamic>.from(extra);
     final uuid = asStr(out['uuid']) ?? '';
@@ -661,9 +718,7 @@ class XuiApi extends PanelApi {
   Future<void> updateUser(PanelUser u, UserDraft d) async {
     if (await _isV3()) {
       // The server replaces the whole row, so send every field back.
-      final body = Map<String, dynamic>.from(u.raw)
-        ..remove('traffic')
-        ..remove('inboundIds')
+      final body = _v3ClientFromRow(u.raw)
         ..['email'] = d.name
         ..['totalGB'] = d.totalBytes
         ..['expiryTime'] = _expiryValue(d)

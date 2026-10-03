@@ -29,24 +29,28 @@ class SpeedTracker {
   final Duration staleAfter;
   final _last = <String, _Snap>{};
 
-  Map<String, Speed> update(Iterable<PanelUser> users, DateTime now) {
+  Map<String, Speed> update(Iterable<PanelUser> users, DateTime now) =>
+      updateCounters([for (final u in users) (u.key, u.up, u.down)], now);
+
+  /// Same as [update] for any `(key, up, down)` counters, e.g. inbounds.
+  Map<String, Speed> updateCounters(Iterable<(String, int, int)> counters, DateTime now) {
     final out = <String, Speed>{};
-    for (final u in users) {
-      final prev = _last[u.key];
+    for (final (key, up, down) in counters) {
+      final prev = _last[key];
       if (prev == null) {
-        _last[u.key] = _Snap(now, u.up, u.down, Speed.zero);
+        _last[key] = _Snap(now, up, down, Speed.zero);
         continue;
       }
-      if (u.up != prev.up || u.down != prev.down) {
+      if (up != prev.up || down != prev.down) {
         final dt = now.difference(prev.time).inMilliseconds / 1000;
         // A counter that went down was reset; count it as no traffic.
-        final du = max(0, u.up - prev.up);
-        final dd = max(0, u.down - prev.down);
+        final du = max(0, up - prev.up);
+        final dd = max(0, down - prev.down);
         final speed = dt > 0 ? Speed(du / dt, dd / dt) : prev.speed;
-        _last[u.key] = _Snap(now, u.up, u.down, speed);
-        out[u.key] = speed;
+        _last[key] = _Snap(now, up, down, speed);
+        out[key] = speed;
       } else {
-        out[u.key] = now.difference(prev.time) > staleAfter ? Speed.zero : prev.speed;
+        out[key] = now.difference(prev.time) > staleAfter ? Speed.zero : prev.speed;
       }
     }
     return out;

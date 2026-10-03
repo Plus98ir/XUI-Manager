@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:xui_manager/api/panel_api.dart';
 import 'package:xui_manager/models/models.dart';
 import 'package:xui_manager/utils/inbound_defaults.dart';
+import 'package:xui_manager/utils/json.dart';
 
 /// In-memory 3X-UI 3.x panel with realistic data for UI tests.
 class FakeApi extends PanelApi {
@@ -148,8 +149,18 @@ class FakeApi extends PanelApi {
   Future<Map<String, dynamic>> rawInbound(int id) async {
     final m = InboundDefaults.newInbound(v3: true);
     m['id'] = id;
-    m['remark'] = 'Reality';
     m['port'] = 8442;
+    // 31+ are the non-vless protocols, one per id.
+    const others = ['hysteria', 'wireguard', 'mixed', 'tuic'];
+    if (id > 30 && id - 31 < others.length) {
+      final p = others[id - 31];
+      m['protocol'] = p;
+      m['remark'] = InboundDefaults.protocolLabel(p);
+      m['settings'] = InboundDefaults.settingsFor(p);
+      m['streamSettings'] = InboundDefaults.streamFor(p, asMap(m['streamSettings']));
+      return m;
+    }
+    m['remark'] = 'Reality';
     InboundDefaults.setSecurity(m['streamSettings'] as Map<String, dynamic>, 'reality', v3: true);
     return m;
   }

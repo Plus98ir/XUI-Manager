@@ -11,8 +11,8 @@ import '../widgets/common.dart';
 import '../widgets/panel_status_line.dart';
 import '../widgets/soft.dart';
 import 'panel_form_screen.dart';
-import 'panel_home_screen.dart';
 import 'settings_screen.dart';
+import 'web_panel_screen.dart';
 
 class PanelsScreen extends StatefulWidget {
   const PanelsScreen({super.key});
@@ -32,9 +32,8 @@ class _PanelsScreenState extends State<PanelsScreen> {
     _refresh();
   }
 
-  Future<void> _openPanel(PanelConfig p) async {
-    await Navigator.push(
-        context, MaterialPageRoute(builder: (_) => PanelHomeScreen(panelId: p.id)));
+  Future<void> _openPanel(PanelConfig p, {bool? web}) async {
+    await Navigator.push(context, panelRoute(p, web: web));
     _refresh();
   }
 
@@ -116,6 +115,7 @@ class _PanelsScreenState extends State<PanelsScreen> {
                         panel: p,
                         refreshToken: _refreshToken,
                         onTap: () => _openPanel(p),
+                        onOpenOther: () => _openPanel(p, web: !p.openWeb),
                         onEdit: () => _openForm(p),
                         onDelete: () => _delete(p),
                       ),
@@ -156,13 +156,14 @@ class _PanelCard extends StatelessWidget {
     required this.panel,
     required this.refreshToken,
     required this.onTap,
+    required this.onOpenOther,
     required this.onEdit,
     required this.onDelete,
   });
 
   final PanelConfig panel;
   final int refreshToken;
-  final VoidCallback onTap, onEdit, onDelete;
+  final VoidCallback onTap, onOpenOther, onEdit, onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -195,9 +196,20 @@ class _PanelCard extends StatelessWidget {
               ],
             ),
           ),
+          IconButton(
+            tooltip: p.openWeb ? s.t('app_view') : s.t('web_panel'),
+            icon: Icon(p.openWeb ? Icons.space_dashboard_outlined : Icons.language_rounded),
+            onPressed: onOpenOther,
+          ),
           PopupMenuButton<String>(
-            onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+            onSelected: (v) => switch (v) {
+              'edit' => onEdit(),
+              'other' => onOpenOther(),
+              _ => onDelete(),
+            },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                  value: 'other', child: Text(p.openWeb ? s.t('app_view') : s.t('web_panel'))),
               PopupMenuItem(value: 'edit', child: Text(s.t('edit_panel'))),
               PopupMenuItem(value: 'delete', child: Text(s.t('delete'))),
             ],

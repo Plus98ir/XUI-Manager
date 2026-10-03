@@ -20,4 +20,12 @@ String uuidV4() {
 String randomBase64Key(int bytes) =>
     base64.encode(List<int>.generate(bytes, (_) => _rnd.nextInt(256)));
 
+/// A WireGuard (Curve25519) private key: 32 random bytes, clamped, base64.
+String randomWireguardKey() {
+  final b = List<int>.generate(32, (_) => _rnd.nextInt(256));
+  b[0] &= 248;
+  b[31] = (b[31] & 127) | 64;
+  return base64.encode(b);
+}
+
 String randomUserName() => 'user_${randomString(5)}';

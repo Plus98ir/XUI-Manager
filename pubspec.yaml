@@ -1,7 +1,7 @@
 name: xui_manager
 description: Manage 3X-UI, Alireza X-UI and Marzban panels from your phone.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -15,6 +15,7 @@ dependencies:
   shared_preferences: ^2.3.2
   flutter_secure_storage: '>=9.2.2 <11.0.0'
   qr_flutter: ^4.1.0
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

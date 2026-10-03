@@ -21,6 +21,7 @@ class _PanelFormScreenState extends State<PanelFormScreen> {
   late PanelType _type;
   late final TextEditingController _name, _url, _user, _pass, _token;
   bool _insecure = false;
+  bool _openWeb = false;
   bool _obscure = true;
   bool _testing = false;
 
@@ -35,6 +36,7 @@ class _PanelFormScreenState extends State<PanelFormScreen> {
     _pass = TextEditingController(text: p?.password ?? '');
     _token = TextEditingController(text: p?.token ?? '');
     _insecure = p?.allowInsecure ?? false;
+    _openWeb = p?.openWeb ?? false;
   }
 
   @override
@@ -58,6 +60,7 @@ class _PanelFormScreenState extends State<PanelFormScreen> {
       password: _pass.text,
       token: _type != PanelType.alireza ? _token.text.trim() : '',
       allowInsecure: _insecure,
+      openWeb: _openWeb,
     );
   }
 
@@ -192,6 +195,13 @@ class _PanelFormScreenState extends State<PanelFormScreen> {
               subtitle: Text(s.t('allow_insecure_help')),
               value: _insecure,
               onChanged: (v) => setState(() => _insecure = v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(s.t('open_web')),
+              subtitle: Text(s.t('open_web_help')),
+              value: _openWeb,
+              onChanged: (v) => setState(() => _openWeb = v),
             ),
             const SizedBox(height: 16),
             Row(

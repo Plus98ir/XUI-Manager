@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../api/panel_api.dart';
@@ -6,9 +8,11 @@ import '../models/models.dart';
 import '../theme.dart';
 import '../utils/format.dart';
 import '../utils/json.dart';
+import '../utils/speed_tracker.dart';
 import '../widgets/common.dart';
 import '../widgets/soft.dart';
 import 'inbound_form_screen.dart';
+import 'users_tab.dart' show SpeedChip;
 
 class InboundsTab extends StatefulWidget {
   const InboundsTab({super.key, required this.api, required this.active});
@@ -25,12 +29,24 @@ class _InboundsTabState extends State<InboundsTab> {
   Object? _error;
   bool _started = false;
   final Set<int> _busy = {};
+  final _tracker = SpeedTracker();
+  Map<String, Speed> _speeds = {};
+  Timer? _timer;
+  bool _polling = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.active) _start();
   }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  static String _key(InboundInfo ib) => '${ib.id ?? ib.tag}';
 
   @override
   void didUpdateWidget(InboundsTab oldWidget) {
@@ -41,20 +57,32 @@ class _InboundsTabState extends State<InboundsTab> {
   void _start() {
     _started = true;
     _load();
+    // Live speed: poll traffic counters while this tab is on screen.
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted && widget.active && !_polling && (ModalRoute.of(context)?.isCurrent ?? true)) {
+        _load(silent: true);
+      }
+    });
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
+    _polling = true;
     try {
       await widget.api.prepare();
       final list = await widget.api.inbounds();
       if (mounted) {
         setState(() {
           _list = list;
+          _speeds = _tracker.updateCounters(
+              [for (final ib in list) if (ib.up != null) (_key(ib), ib.up!, ib.down ?? 0)],
+              DateTime.now());
           _error = null;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (mounted && !silent) setState(() => _error = e);
+    } finally {
+      _polling = false;
     }
   }
 
@@ -242,6 +270,7 @@ class _InboundsTabState extends State<InboundsTab> {
                   final ib = list[i];
                   return _InboundCard(
                     inbound: ib,
+                    speed: _speeds[_key(ib)] ?? Speed.zero,
                     busy: _busy.contains(ib.id),
                     manage: manage && ib.id != null,
                     onTap: manage && ib.id != null ? () => _openForm(ib) : null,
@@ -270,6 +299,7 @@ class _InboundsTabState extends State<InboundsTab> {
 class _InboundCard extends StatelessWidget {
   const _InboundCard({
     required this.inbound,
+    this.speed = Speed.zero,
     required this.busy,
     required this.manage,
     required this.onTap,
@@ -281,6 +311,7 @@ class _InboundCard extends StatelessWidget {
   final bool canAttach;
 
   final InboundInfo inbound;
+  final Speed speed;
   final bool busy;
   final bool manage;
   final VoidCallback? onTap;
@@ -364,6 +395,10 @@ class _InboundCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (speed.active) ...[
+            const SizedBox(height: 8),
+            SpeedChip(speed: speed),
+          ],
           if (tags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Padding(

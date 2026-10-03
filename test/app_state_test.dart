@@ -8,7 +8,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AppState', () {
-    test('allows at most 5 panels', () async {
+    test('allows at most maxPanels panels', () async {
       SharedPreferences.setMockInitialValues({});
       FlutterSecureStorage.setMockInitialValues({});
       final state = AppState();
@@ -17,11 +17,11 @@ void main() {
         await state.upsert(PanelConfig(
             id: 'p$i', name: 'Panel $i', type: PanelType.values[i % 3], url: 'https://h$i.com'));
       }
-      expect(state.panels, hasLength(5));
+      expect(state.panels, hasLength(AppState.maxPanels));
       expect(state.canAddPanel, isFalse);
       expect(
           () => state.upsert(const PanelConfig(
-              id: 'p6', name: 'x', type: PanelType.marzban, url: 'https://x.com')),
+              id: 'extra', name: 'x', type: PanelType.marzban, url: 'https://x.com')),
           throwsStateError);
       // Editing an existing panel still works at the limit.
       await state.upsert(const PanelConfig(
@@ -30,7 +30,7 @@ void main() {
 
       final reloaded = AppState();
       await reloaded.load();
-      expect(reloaded.panels, hasLength(5));
+      expect(reloaded.panels, hasLength(AppState.maxPanels));
     });
   });
 }

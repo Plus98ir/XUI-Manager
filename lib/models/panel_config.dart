@@ -26,6 +26,7 @@ class PanelConfig {
     this.password = '',
     this.token = '',
     this.allowInsecure = false,
+    this.openWeb = false,
   });
 
   final String id;
@@ -40,6 +41,10 @@ class PanelConfig {
 
   /// Accept self-signed / invalid TLS certificates.
   final bool allowInsecure;
+
+  /// Tapping the panel opens its own web UI (like the panel's PWA) instead of
+  /// the app's screens.
+  final bool openWeb;
 
   static String newId() =>
       '${DateTime.now().microsecondsSinceEpoch}${Random().nextInt(9999)}';
@@ -57,6 +62,7 @@ class PanelConfig {
         'password': password,
         'token': token,
         'allowInsecure': allowInsecure,
+        'openWeb': openWeb,
       };
 
   factory PanelConfig.fromJson(Map<String, dynamic> j) => PanelConfig(
@@ -69,6 +75,7 @@ class PanelConfig {
         password: j['password']?.toString() ?? '',
         token: j['token']?.toString() ?? '',
         allowInsecure: j['allowInsecure'] == true,
+        openWeb: j['openWeb'] == true,
       );
 }
 

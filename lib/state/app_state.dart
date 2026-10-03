@@ -10,7 +10,7 @@ import '../theme.dart';
 class AppState extends ChangeNotifier {
   static const _storage = FlutterSecureStorage();
   static const _panelsKey = 'panels_v1';
-  static const maxPanels = 5;
+  static const maxPanels = 20;
 
   late SharedPreferences _prefs;
   List<PanelConfig> _panels = [];

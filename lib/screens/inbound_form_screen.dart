@@ -87,7 +87,8 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
 
   /// Deep copy with plain `Map<String, dynamic>` / `List<dynamic>` everywhere,
   /// so nested values can be replaced with any type.
-  static Map<String, dynamic> _normalize(Map<String, dynamic> m) => asMap(jsonDecode(jsonEncode(m)));
+  static Map<String, dynamic> _normalize(Map<String, dynamic> m) =>
+      asMap(jsonDecode(jsonEncode(m)));
 
   void _restructure(void Function() change) {
     setState(() {
@@ -186,8 +187,8 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
       autocorrect: false,
       decoration: InputDecoration(
           labelText: label, helperText: helper, helperMaxLines: 2, suffixIcon: suffix),
-      onChanged: (v) => _set(
-          path, v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()),
+      onChanged: (v) =>
+          _set(path, v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()),
     );
   }
 
@@ -304,6 +305,12 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
     final tag = asStr(body['tag']) ?? '';
     if (InboundDefaults.isAutoTag(tag)) body['tag'] = InboundDefaults.autoTag(body);
 
+    if (_protocol == 'tunnel') {
+      final st = asMap(body['settings']);
+      if ((asStr(st['rewriteAddress']) ?? '').isEmpty) st.remove('rewriteAddress');
+      if ((asInt(st['rewritePort']) ?? 0) == 0) st.remove('rewritePort');
+      body['settings'] = st;
+    }
     final stream = asMap(body['streamSettings']);
     if (_security == 'reality') {
       final r = asMap(stream['realitySettings']);
@@ -414,14 +421,15 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
             if (_isEdit)
               InputDecorator(
                 decoration: InputDecoration(labelText: s.t('protocol')),
-                child: Text(_protocol.toUpperCase()),
+                child: Text(InboundDefaults.protocolLabel(_protocol)),
               )
             else
-              _dd(['protocol'], s.t('protocol'), InboundDefaults.protocols,
-                  text: (p) => p.toUpperCase(),
+              _dd(['protocol'], s.t('protocol'), InboundDefaults.protocolsFor(v3: _v3),
+                  text: InboundDefaults.protocolLabel,
                   onChanged: (p) => _restructure(() {
                         _inb['protocol'] = p;
                         _inb['settings'] = InboundDefaults.settingsFor(p);
+                        _inb['streamSettings'] = InboundDefaults.streamFor(p, _stream);
                         if (!InboundDefaults.realityAllowed(p, _network) &&
                             _security == 'reality') {
                           InboundDefaults.setSecurity(_stream, 'none', v3: _v3);
@@ -438,11 +446,10 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
                     icon: const Icon(Icons.casino_outlined),
                     onPressed: () =>
                         _restructure(() => _inb['port'] = InboundDefaults.randomPort()),
-                  ),
-                  validator: (v) {
-                    final p = int.tryParse(v) ?? 0;
-                    return p < 1 || p > 65535 ? s.t('invalid_port') : null;
-                  }),
+                  ), validator: (v) {
+                final p = int.tryParse(v) ?? 0;
+                return p < 1 || p > 65535 ? s.t('invalid_port') : null;
+              }),
             ),
             gap,
             _pair(
@@ -499,31 +506,34 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
                   fallback: 'tcp,udp'),
             ],
           ),
-        if (supported) ...[
+        ..._protocolSections(s),
+        if (supported)
           FormSection(
             title: s.t('section_transport'),
             icon: Icons.swap_calls_rounded,
             children: _transportFields(s),
           ),
+        if (supported || _protocol == 'hysteria')
           FormSection(
             title: s.t('section_security'),
             icon: Icons.shield_outlined,
             children: _securityFields(s),
           ),
-        ],
-        FormSection(
-          title: s.t('section_sniffing'),
-          icon: Icons.travel_explore_outlined,
-          initiallyExpanded: false,
-          children: [
-            _sw(['sniffing', 'enabled'], s.t('enabled')),
-            if (_get(['sniffing', 'enabled']) == true) ...[
-              _chips(['sniffing', 'destOverride'], s.t('dest_override'), InboundDefaults.sniffDest),
-              _sw(['sniffing', 'metadataOnly'], 'Metadata only'),
-              _sw(['sniffing', 'routeOnly'], 'Route only'),
+        if (InboundDefaults.sniffingAllowed(_protocol))
+          FormSection(
+            title: s.t('section_sniffing'),
+            icon: Icons.travel_explore_outlined,
+            initiallyExpanded: false,
+            children: [
+              _sw(['sniffing', 'enabled'], s.t('enabled')),
+              if (_get(['sniffing', 'enabled']) == true) ...[
+                _chips(
+                    ['sniffing', 'destOverride'], s.t('dest_override'), InboundDefaults.sniffDest),
+                _sw(['sniffing', 'metadataOnly'], 'Metadata only'),
+                _sw(['sniffing', 'routeOnly'], 'Route only'),
+              ],
             ],
-          ],
-        ),
+          ),
         const SizedBox(height: 14),
         OutlinedButton.icon(
           onPressed: _editJson,
@@ -531,13 +541,141 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
           label: Text(s.t('advanced_json')),
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         ),
-        if (!supported)
+        if (!InboundDefaults.protocolsFor(v3: _v3).contains(_protocol))
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(s.t('protocol_json_only'), textAlign: TextAlign.center),
           ),
       ],
     );
+  }
+
+  /// Settings specific to protocols outside the vless/vmess/trojan/ss family,
+  /// mirroring the panel's own inbound form.
+  List<Widget> _protocolSections(S s) {
+    const gap = SizedBox(height: 14);
+    const st = ['settings'];
+    Widget section(List<Widget> children) => FormSection(
+          title: InboundDefaults.protocolLabel(_protocol),
+          icon: Icons.settings_input_component_outlined,
+          children: children,
+        );
+    Widget account() => _pair(_tf([...st, 'accounts', '0', 'user'], s.t('username')),
+        _tf([...st, 'accounts', '0', 'pass'], s.t('password')));
+    Widget regen(List<String> path, String Function() value) => IconButton(
+          tooltip: s.t('generate'),
+          icon: const Icon(Icons.autorenew_rounded),
+          onPressed: () => _restructure(() => _set(path, value())),
+        );
+    switch (_protocol) {
+      case 'mixed' || 'socks':
+        return [
+          section([
+            _dd([...st, 'auth'], 'Auth', const ['password', 'noauth'], fallback: 'password'),
+            if (_get([...st, 'auth']) != 'noauth') ...[gap, account()],
+            _sw([...st, 'udp'], 'UDP'),
+            if (_get([...st, 'udp']) == true) _tf([...st, 'ip'], 'UDP IP'),
+          ]),
+        ];
+      case 'http':
+        return [
+          section([
+            account(),
+            _sw([...st, 'allowTransparent'], 'Allow transparent'),
+          ]),
+        ];
+      case 'tunnel' || 'dokodemo-door':
+        final v3 = _protocol == 'tunnel';
+        return [
+          section([
+            _pair(_tf([...st, v3 ? 'rewriteAddress' : 'address'], s.t('target_address')),
+                _tf([...st, v3 ? 'rewritePort' : 'port'], s.t('target_port'), number: true)),
+            gap,
+            _dd([
+              ...st,
+              v3 ? 'allowedNetwork' : 'network'
+            ], s.t('network'), InboundDefaults.ssNetworks, fallback: 'tcp,udp'),
+            _sw([...st, 'followRedirect'], 'Follow redirect'),
+          ]),
+        ];
+      case 'tun':
+        return [
+          section([
+            _pair(_tf([...st, 'name'], 'Interface'), _tf([...st, 'mtu'], 'MTU', number: true)),
+            gap,
+            _csv([...st, 'gateway'], 'Gateway', helper: s.t('comma_separated')),
+            gap,
+            _csv([...st, 'dns'], 'DNS', helper: s.t('comma_separated')),
+          ]),
+        ];
+      case 'wireguard':
+        return [
+          section([
+            _tf([...st, 'secretKey'], s.t('private_key'),
+                suffix: regen([...st, 'secretKey'], randomWireguardKey),
+                validator: (v) => v.trim().isEmpty ? s.t('required') : null),
+            gap,
+            _pair(_tf([...st, 'subnetIp'], s.t('subnet')),
+                _tf([...st, 'subnetCidr'], 'CIDR', number: true)),
+            gap,
+            _tf([...st, 'mtu'], 'MTU', number: true),
+            _sw([...st, 'noKernelTun'], 'No kernel TUN'),
+          ]),
+        ];
+      case 'amneziawg':
+        final server = [...st, 'server'];
+        return [
+          section([
+            if (_get(server) is! Map)
+              Text(s.t('awg_auto'))
+            else ...[
+              _pair(_tf([...server, 'subnetIp'], s.t('subnet')),
+                  _tf([...server, 'subnetCidr'], 'CIDR', number: true)),
+              gap,
+              _pair(_tf([...server, 'primaryDns'], 'DNS 1'),
+                  _tf([...server, 'secondaryDns'], 'DNS 2')),
+            ],
+          ]),
+        ];
+      case 'mtproto':
+        return [
+          section([
+            _tf([...st, 'fakeTlsDomain'], 'FakeTLS domain', helper: 'www.cloudflare.com'),
+          ]),
+        ];
+      case 'tuic':
+        final server = [...st, 'server'];
+        return [
+          section([
+            _tf([...server, 'certificate'], s.t('cert_file'),
+                helper: ltr('/root/cert/example.com/fullchain.pem')),
+            gap,
+            _tf([...server, 'private_key'], s.t('key_file'),
+                helper: ltr('/root/cert/example.com/privkey.pem')),
+            gap,
+            _tf([...server, 'sni'], 'SNI'),
+            gap,
+            _dd([...server, 'congestion_control'], 'Congestion control',
+                const ['bbr', 'cubic', 'new_reno'],
+                fallback: 'bbr'),
+            gap,
+            _csv([...server, 'alpn'], 'ALPN', helper: s.t('comma_separated')),
+            _sw([...server, 'zero_rtt_handshake'], ltr('0-RTT')),
+          ]),
+        ];
+      case 'hysteria':
+        const obfs = ['streamSettings', 'finalmask', 'udp', '0', 'settings', 'password'];
+        return [
+          section([
+            _tf(['streamSettings', 'hysteriaSettings', 'udpIdleTimeout'], 'UDP idle timeout (s)',
+                number: true, helper: '2-600'),
+            gap,
+            _tf(obfs, 'Salamander (obfs) password', suffix: regen(obfs, () => randomString(16))),
+          ]),
+        ];
+      default:
+        return const [];
+    }
   }
 
   List<Widget> _transportFields(S s) {
@@ -561,7 +699,10 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
         'tcp' => [
             _dd([...base, 'header', 'type'], s.t('header_type'), const ['none', 'http'],
                 onChanged: (v) => _restructure(() {
-                      _set([...base, 'header'], {
+                      _set([
+                        ...base,
+                        'header'
+                      ], {
                         'type': v,
                         if (v == 'http')
                           'request': {
@@ -605,7 +746,8 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
         'kcp' => [
             _tf([...base, 'seed'], 'Seed'),
             gap,
-            _pair(_tf([...base, 'mtu'], 'MTU', number: true), _tf([...base, 'tti'], 'TTI', number: true)),
+            _pair(_tf([...base, 'mtu'], 'MTU', number: true),
+                _tf([...base, 'tti'], 'TTI', number: true)),
           ],
         _ => <Widget>[],
       },
@@ -614,11 +756,13 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
 
   List<Widget> _securityFields(S s) {
     const gap = SizedBox(height: 14);
-    final options = [
-      'none',
-      if (InboundDefaults.tlsAllowed(_protocol)) 'tls',
-      if (InboundDefaults.realityAllowed(_protocol, _network)) 'reality',
-    ];
+    final options = _protocol == 'hysteria'
+        ? const ['tls'] // Hysteria always runs over TLS (QUIC)
+        : [
+            'none',
+            if (InboundDefaults.tlsAllowed(_protocol)) 'tls',
+            if (InboundDefaults.realityAllowed(_protocol, _network)) 'reality',
+          ];
     final tls = ['streamSettings', 'tlsSettings'];
     final re = ['streamSettings', 'realitySettings'];
     // 3.x calls the Reality destination `target`; older panels use `dest`.
@@ -639,18 +783,21 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
         gap,
         _chips([...tls, 'alpn'], 'ALPN', InboundDefaults.alpns),
         gap,
-        _dd([...tls, 'settings', 'fingerprint'], 'uTLS fingerprint', InboundDefaults.fingerprints,
-            fallback: 'chrome'),
+        _dd([...tls, 'settings', 'fingerprint'], 'uTLS fingerprint',
+            ['', ...InboundDefaults.fingerprints],
+            text: (o) => o.isEmpty ? s.t('none') : o, fallback: 'chrome'),
         gap,
         _tf([...tls, 'certificates', '0', 'certificateFile'], s.t('cert_file'),
-            helper: '/root/cert/example.com/fullchain.pem'),
+            helper: ltr('/root/cert/example.com/fullchain.pem')),
         gap,
         _tf([...tls, 'certificates', '0', 'keyFile'], s.t('key_file'),
-            helper: '/root/cert/example.com/privkey.pem'),
+            helper: ltr('/root/cert/example.com/privkey.pem')),
         gap,
         _pair(
-          _dd([...tls, 'minVersion'], 'Min TLS', const ['1.0', '1.1', '1.2', '1.3'], fallback: '1.2'),
-          _dd([...tls, 'maxVersion'], 'Max TLS', const ['1.0', '1.1', '1.2', '1.3'], fallback: '1.3'),
+          _dd([...tls, 'minVersion'], 'Min TLS', const ['1.0', '1.1', '1.2', '1.3'],
+              fallback: '1.2'),
+          _dd([...tls, 'maxVersion'], 'Max TLS', const ['1.0', '1.1', '1.2', '1.3'],
+              fallback: '1.3'),
         ),
         _sw([...tls, 'rejectUnknownSni'], 'Reject unknown SNI'),
       ],
@@ -670,7 +817,8 @@ class _InboundFormScreenState extends State<InboundFormScreen> {
         OutlinedButton.icon(
           onPressed: _genKeys ? null : _generateRealityKeys,
           icon: _genKeys
-              ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox.square(
+                  dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.vpn_key_outlined),
           label: Text(s.t('generate_keys')),
         ),

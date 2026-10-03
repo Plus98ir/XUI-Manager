@@ -6,7 +6,9 @@ import 'package:xui_manager/api/panel_api.dart';
 import 'package:xui_manager/models/models.dart';
 
 /// Minimal fake of a 3X-UI panel under web base path /secret.
-Future<HttpServer> fakeXui(List<Map<String, String>> added) async {
+/// Minimal fake of a 3X-UI panel. With [csrf], every POST needs the session
+/// CSRF token from GET /csrf-token, like 3X-UI 3.x.
+Future<HttpServer> fakeXui(List<Map<String, String>> added, {bool csrf = false}) async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   server.listen((req) async {
     final path = req.uri.path;
@@ -17,7 +19,12 @@ Future<HttpServer> fakeXui(List<Map<String, String>> added) async {
       req.response.write(jsonEncode(o));
     }
 
-    if (path == '/secret/login' && req.method == 'POST') {
+    if (csrf && path == '/secret/csrf-token') {
+      req.response.cookies.add(Cookie('3x-ui', 'pre'));
+      json({'success': true, 'obj': 'tok'});
+    } else if (csrf && req.method == 'POST' && req.headers.value('X-CSRF-Token') != 'tok') {
+      req.response.statusCode = 403;
+    } else if (path == '/secret/login' && req.method == 'POST') {
       final form = Uri.splitQueryString(body);
       if (form['username'] == 'admin' && form['password'] == 'pw') {
         req.response.cookies.add(Cookie('3x-ui', 'sess'));
@@ -200,6 +207,25 @@ void main() {
       expect(client['email'], 'new1');
       expect(client['flow'], 'xtls-rprx-vision');
       expect(client.containsKey('tgId'), isFalse);
+    });
+
+    test('sends the CSRF token on login and writes (3X-UI 3.x)', () async {
+      final csrfServer = await fakeXui(added, csrf: true);
+      final v3 = PanelApi.create(PanelConfig(
+          id: 'c',
+          name: 'c',
+          type: PanelType.threeXui,
+          url: 'http://127.0.0.1:${csrfServer.port}/secret',
+          username: 'admin',
+          password: 'pw'));
+      try {
+        await v3.login();
+        await v3.createUser(UserDraft(name: 'csrf1', totalBytes: 0, inboundId: 1));
+        expect(added.last['id'], '1');
+      } finally {
+        v3.dispose();
+        await csrfServer.close(force: true);
+      }
     });
 
     test('wrong password shows the panel message', () async {

@@ -26,13 +26,14 @@
 
 ## English
 
-A native Android app that talks to your panel's API. No WebView, no server-side component: install it, add your panel's address and log in.
+A native Android app that talks to your panel's API. Nothing to install on the server: install the app, add your panel's address and log in. Want the panel's own page instead? Each panel can also open as a built-in web panel, like the panel's PWA, but with all your servers in one app.
 
 ### Features
-- **Panels:** 3X-UI (including 3.x API tokens), Alireza X-UI and Marzban. Up to 5 panels, with a one-tap switcher.
+- **Panels:** 3X-UI (including 3.x API tokens), Alireza X-UI and Marzban. Up to 20 panels, with a one-tap switcher.
+- **Web panel:** open any panel's own web page inside the app, signed in automatically. It works like the panel's PWA, except one app holds all your servers. Choose per panel whether a tap opens the app screens or the web panel.
 - **Server status:** live charts for CPU, RAM, swap, disk, network speed and open connections, plus uptime and panel stats. Restart Xray or the panel.
 - **Users:** search and filter (online, active, disabled, expired, depleted), add, edit, delete, enable/disable and reset traffic. Live per-user speed. QR codes, subscription links and config links. On 3X-UI 3.x one user can sit on several inbounds (including Hysteria and AmneziaWG), groups are picked from a list, and a whole group or chosen users can be attached to an inbound.
-- **Inbounds:** add and edit VLESS / VMess / Trojan / Shadowsocks with TCP, WS, gRPC, xHTTP, TLS and Reality (key generation included).
+- **Inbounds:** every protocol the panel offers: VLESS, VMess, Trojan, Shadowsocks, Hysteria2, TUIC, WireGuard, AmneziaWG, MTProto, Mixed (SOCKS + HTTP), HTTP, Tunnel and TUN, with TCP, WS, gRPC, xHTTP, TLS and Reality (key generation included). Live speed per inbound.
 - **Outbounds:** add from a share link (`vless://`, `vmess://`, `trojan://`, `ss://`), or pick Direct, Block, WARP, SOCKS or HTTP. Edit, reorder and set the default.
 - **Routing:** domain strategy, drag-to-reorder rules, and a rule form for domains, IPs, ports, network, protocol and inbound tags.
 - **Panel settings:** every panel setting, grouped and searchable, plus the raw Xray config editor.
@@ -77,13 +78,14 @@ flutter build apk --release
 
 ## فارسی
 
-یک برنامه اندروید که مستقیم با API پنل شما کار می‌کند. نه WebView است و نه چیزی روی سرور نصب می‌کند: برنامه را نصب کنید، آدرس پنل را وارد کنید و وارد شوید.
+یک برنامه اندروید که مستقیم با API پنل شما کار می‌کند و چیزی روی سرور نصب نمی‌کند: برنامه را نصب کنید، آدرس پنل را وارد کنید و وارد شوید. اگر صفحه خود پنل را ترجیح می‌دهید، هر پنل به‌صورت پنل وب هم داخل برنامه باز می‌شود؛ مثل PWA پنل، ولی همه سرورها در یک برنامه.
 
 ### امکانات
-- **پنل‌ها:** 3X-UI (همراه با توکن API نسخه 3.x)، علیرضا X-UI و مرزبان. تا ۵ پنل، با جابه‌جایی سریع بین آن‌ها.
+- **پنل‌ها:** 3X-UI (همراه با توکن API نسخه 3.x)، علیرضا X-UI و مرزبان. تا ۲۰ پنل، با جابه‌جایی سریع بین آن‌ها.
+- **پنل وب:** صفحه وب خود پنل داخل برنامه باز می‌شود و ورود خودکار انجام می‌شود. مثل PWA پنل است، با این فرق که همه سرورهایتان در یک برنامه‌اند. برای هر پنل انتخاب کنید با زدن روی آن صفحه‌های برنامه باز شود یا پنل وب.
 - **وضعیت سرور:** نمودار زنده CPU، رم، Swap، دیسک، سرعت شبکه و اتصال‌های باز، به‌همراه مدت روشن بودن و آمار پنل. ری‌استارت Xray یا پنل.
 - **کاربران:** جستجو و فیلتر (آنلاین، فعال، غیرفعال، منقضی، اتمام حجم)، افزودن، ویرایش، حذف، فعال/غیرفعال کردن و ریست ترافیک. سرعت زنده هر کاربر. QR کد، لینک اشتراک و لینک کانفیگ. در 3X-UI 3.x هر کاربر می‌تواند به چند اینباند (از جمله Hysteria و AmneziaWG) وصل شود، گروه از لیست انتخاب می‌شود، و می‌توان یک گروه کامل یا کاربران دلخواه را به یک اینباند اضافه کرد.
-- **اینباندها:** افزودن و ویرایش VLESS / VMess / Trojan / Shadowsocks با TCP، WS، gRPC، xHTTP، TLS و Reality (همراه با ساخت کلید).
+- **اینباندها:** همه پروتکل‌های پنل: VLESS، VMess، Trojan، Shadowsocks، Hysteria2، TUIC، WireGuard، AmneziaWG، MTProto، Mixed (SOCKS + HTTP)، HTTP، Tunnel و TUN، با TCP، WS، gRPC، xHTTP، TLS و Reality (همراه با ساخت کلید). سرعت زنده هر اینباند.
 - **خروجی‌ها (Outbound):** افزودن از روی لینک کانفیگ (`vless://`، `vmess://`، `trojan://`، `ss://`) یا انتخاب مستقیم، مسدود، WARP، SOCKS و HTTP. ویرایش، جابه‌جایی و تعیین خروجی پیش‌فرض.
 - **مسیریابی (Routing):** استراتژی دامنه، جابه‌جایی قانون‌ها با کشیدن، و فرم قانون برای دامنه، آی‌پی، پورت، شبکه، پروتکل و تگ اینباند.
 - **تنظیمات پنل:** همه تنظیمات پنل، دسته‌بندی‌شده و قابل جستجو، به‌علاوه ویرایشگر کانفیگ Xray.
