@@ -16,6 +16,8 @@
   <a href="#فارسی">فارسی</a>
 </p>
 
+<p align="center"><a href="https://hits.sh/github.com/Plus98ir/XUI-Manager/"><img src="https://hits.sh/github.com/Plus98ir/XUI-Manager.svg?style=for-the-badge&label=views&color=2563eb" alt="Views"></a></p>
+
 <p align="center">
   <img src="docs/screenshots/home-aurora-fa.webp" width="30%" alt="Home, Aurora style (Farsi)">
   <img src="docs/screenshots/home-frost-en.webp" width="30%" alt="Home, Frost style (English)">
