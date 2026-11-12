@@ -6,6 +6,12 @@
 
 <p align="center"><a href="https://hits.sh/github.com/Plus98ir/XUI-Manager/"><img src="https://hits.sh/github.com/Plus98ir/XUI-Manager.svg?style=for-the-badge&label=views&color=2563eb" alt="Views"></a> <a href="https://corenetbase.com/#support"><img src="https://img.shields.io/badge/support-buy%20me%20a%20coffee-e11d2a?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Support"></a></p>
 
+<div align="center">
+
+[<img src="https://flagcdn.com/w40/us.png" width="20" alt=""> &nbsp;**English**](README.md) &nbsp;&nbsp;|&nbsp;&nbsp; [<img src="https://flagcdn.com/w40/ir.png" width="20" alt=""> &nbsp;**فارسی**](README.fa.md)
+
+</div>
+
 <details>
 <summary><b>☕ Support · حمایت</b> — USDT (TRC20) / TRX</summary>
 <br>
@@ -36,12 +42,6 @@ TA53aFyGNfSAcrCaJi9QmA9x5W47nPJcf7
   <img src="docs/screenshots/home-frost-en.webp" width="30%" alt="Home, Frost style (English)">
   <img src="docs/screenshots/users-en.webp" width="30%" alt="Users">
 </p>
-
-<div align="center">
-
-[<img src="https://flagcdn.com/w40/us.png" width="20" alt=""> &nbsp;**English**](README.md) &nbsp;&nbsp;|&nbsp;&nbsp; [<img src="https://flagcdn.com/w40/ir.png" width="20" alt=""> &nbsp;**فارسی**](README.fa.md)
-
-</div>
 
 A native Android app that talks to your panel's API. Nothing to install on the server: install the app, add your panel's address and log in. Want the panel's own page instead? Each panel can also open as a built-in web panel, like the panel's PWA, but with all your servers in one app.
 
